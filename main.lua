@@ -5,8 +5,9 @@ require 'scripts/helpers'
 require 'scripts/aliases'
 
 function love.load()
+	flags = {}
 	fnt.bigFont = lg.newFont(36)
-	fnt.medFont = lg.newFont(20)
+	fnt.medFont = lg.newFont(14)
 	sw,sh = love.window.getDimensions()
 	mx,my,lx,ly = 0,0,0,0
 	initParts()
@@ -113,7 +114,8 @@ function love.load()
 		{"Down", "Change easing function"},
 		{"Left", "Change easing function"},
 		{"Right", "Change easing function"},
-		{"Keypad 0", "Change keyframe easing to 'linear'"}
+		{"Keypad 0", "Change keyframe easing to 'linear'"},
+		{"Tab", "Cycle through active parts (shift to cycle backwards)"}
 	}
 end
 
@@ -144,6 +146,7 @@ function love.update(dt)
 	end
 	anim.update(dt)
 	lx,ly = mx,my
+	flags[1] = activePart
 end
 
 function love.draw()
@@ -164,6 +167,9 @@ function love.draw()
 	-- end
 	drawKeyframes()
 	drawAnimState()
+	lg.setColor(white)
+	lg.setFont(fnt.medFont)
+	lg.print(tostring(anim.timer):sub(1,6),10,sh-110)
 	
 	if showHelp then
 		lg.setColor(0,0,0,240)
@@ -171,13 +177,15 @@ function love.draw()
 		lg.setFont(fnt.medFont)
 		lg.setColor(white)
 		for i,tbl in ipairs(help) do
-			lg.print(tbl[1],20,24*i)
-			lg.print(tbl[2],200,24*i)
+			lg.print(tbl[1],20,18*i)
+			lg.print(tbl[2],200,18*i)
 		end
 	end
 	lg.setColor(white)
 	lg.setFont(fnt.medFont)
-	lg.print(tostring(anim.timer):sub(1,6),10,sh-110)
+	for i,f in ipairs(flags) do
+		lg.print(f,200,18*i)
+	end
 	if nameBuffer then lg.print("Enter a name for the animation: " .. nameBuffer, 20,80) end
 	if newLength then lg.print(newLength,400,20) end
 end
@@ -257,6 +265,16 @@ function love.keypressed(key,isrepeat)
 			if activeKeyframe then keyframes[activeKeyframe].easing = (keyframes[activeKeyframe].easing + 4)%41 end
 		elseif key=='kp0' then
 			if activeKeyframe then keyframes[activeKeyframe].easing = 1 end
+		elseif key=='tab' and #parts >= 1 then
+			if not activePart then activePart = 1 else
+				if shiftMod then
+					activePart = activePart - 1
+					if activePart == 0 then activePart = #parts end
+				else
+					activePart = activePart + 1
+					if activePart > #parts then activePart = 1 end
+				end
+			end
 		end
 		if activeKeyframe then
 			if keyframes[activeKeyframe].easing == 0 then keyframes[activeKeyframe].easing = 1 end
@@ -269,52 +287,31 @@ function love.textinput(t)
 end
 
 function love.mousepressed(mx,my,button)
-	for i,p in ipairs(parts) do
-		if pointBox(mx,my,{p.tbl.x-p.ox*p.tbl.sx+sw/2,p.tbl.y-p.oy*p.tbl.sy+(sh-150),p.w*p.tbl.sx,p.h*p.tbl.sy}) then
-			if drawOrder2 then
-				drawOrder2[#drawOrder2+1] = i
-			else
-				if button=='l' then
+	--select activePart
+	if not activePart then
+		for i,p in ipairs(parts) do
+			if pointBox(mx,my,{p.tbl.x-p.ox*p.tbl.sx+sw/2,p.tbl.y-p.oy*p.tbl.sy+(sh-150),p.w*p.tbl.sx,p.h*p.tbl.sy}) then
+				activePart = i
+			end
+		end
+	else
+		local ap = parts[activePart]
+		if not pointBox(mx,my,{ap.tbl.x-ap.ox*ap.tbl.sx+sw/2,ap.tbl.y-ap.oy*ap.tbl.sy+(sh-150),ap.w*ap.tbl.sx,ap.h*ap.tbl.sy}) then
+			for i,p in ipairs(parts) do
+				if pointBox(mx,my,{p.tbl.x-p.ox*p.tbl.sx+sw/2,p.tbl.y-p.oy*p.tbl.sy+(sh-150),p.w*p.tbl.sx,p.h*p.tbl.sy}) then
 					activePart = i
-					if not shiftMod then
-						heldPart = i
-					else
-						rotPart = i
-						heldPart = nil
-					end
-				end
-				if button=='m' then
-					p.tbl.sx = 0.25
-					p.tbl.sy = 0.25
 				end
 			end
 		end
 	end
+	if activePart then mouseToPart(activePart,button) end
+	
+	--select keyframe
 	for i,kf in ipairs(keyframes) do
 		if pointBox(mx,my,{10+90*(i-1),sh-30,20,25}) then
 			activeKeyframe = i
 			anim.loadKeyframe(i)
 			activePart = nil
-		end
-	end
-	if activePart then
-		local p = parts[activePart]
-		if button =='wd' then
-			if ctrlMod then
-				p.tbl.sx = p.tbl.sx - 0.01
-				p.tbl.sy = p.tbl.sy - 0.01
-			else
-				p.tbl.sx = p.tbl.sx - 0.05
-				p.tbl.sy = p.tbl.sy - 0.05
-			end
-		elseif button=='wu' then
-			if ctrlMod then
-				p.tbl.sx = p.tbl.sx + 0.01
-				p.tbl.sy = p.tbl.sy + 0.01
-			else
-				p.tbl.sx = p.tbl.sx + 0.05
-				p.tbl.sy = p.tbl.sy + 0.05
-			end
 		end
 	end
 end
@@ -475,8 +472,7 @@ function saveAnimation()
 	if not lfs.exists('animations') then lfs.createDirectory('animations') end
 	if not anim.name then anim.name = 'untitled' end
 	if anim.name=='' then anim.name = 'untitled' end
-	table.save(keyframes,anim.name)
-	
+	table.save(keyframes,anim.name .. '.anm')
 end
 
 function loadAnimation()
@@ -507,7 +503,42 @@ function love.resize(swv,shv)
 	sh = shv
 end
 
-
+function mouseToPart(ind,button)
+	local p = parts[ind]
+	if drawOrder2 then
+		drawOrder2[#drawOrder2+1] = ind
+	else
+		if button=='l' then
+			if not shiftMod then
+				heldPart = ind
+			else
+				rotPart = ind
+				heldPart = nil
+			end
+		end
+		if button=='m' then
+			p.tbl.sx = 0.25
+			p.tbl.sy = 0.25
+		end
+		if button =='wd' then
+			if ctrlMod then
+				p.tbl.sx = p.tbl.sx - 0.01
+				p.tbl.sy = p.tbl.sy - 0.01
+			else
+				p.tbl.sx = p.tbl.sx - 0.05
+				p.tbl.sy = p.tbl.sy - 0.05
+			end
+		elseif button=='wu' then
+			if ctrlMod then
+				p.tbl.sx = p.tbl.sx + 0.01
+				p.tbl.sy = p.tbl.sy + 0.01
+			else
+				p.tbl.sx = p.tbl.sx + 0.05
+				p.tbl.sy = p.tbl.sy + 0.05
+			end
+		end
+	end
+end
 
 
 
