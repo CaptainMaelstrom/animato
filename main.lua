@@ -154,6 +154,7 @@ function love.draw()
 	lg.setFont(fnt.default)
 	lg.print("Hold space bar for instructions",sw/2-fnt.default:getWidth("Hold space bar for instructions")/2, sh-16)
 	lg.setColor(200,200,200)
+	--translate coord system so when table.save writes to file, the parts are close to 0, but they are drawn here close to the center of the screen
 	lg.push()
 		lg.translate(sw/2,sh-150)
 		lg.line(-75,0,75,0)
@@ -161,10 +162,6 @@ function love.draw()
 		lg.point(0,0)
 		drawParts()
 	lg.pop()
-	-- for i,p in ipairs(parts) do
-		-- lg.setColor(255,255,0)
-		-- lg.rectangle('line',p.tbl.x-p.ox*p.tbl.sx+sw/2,p.tbl.y-p.oy*p.tbl.sy+(sh-150),p.w*p.tbl.sx,p.h*p.tbl.sy)
-	-- end
 	drawKeyframes()
 	drawAnimState()
 	lg.setColor(white)
@@ -197,6 +194,9 @@ function love.keypressed(key,isrepeat)
 			if saveWaiting then saveAnimation() saveWaiting = nil end
 			if loadWaiting then loadAnimation() loadWaiting = nil end
 			nameBuffer = nil
+		end
+		if key=='backspace' then
+			if nameBuffer~=nil then nameBuffer = nameBuffer:sub(1,-2) end
 		end
 	else
 		if activeKeyframe then
@@ -249,7 +249,7 @@ function love.keypressed(key,isrepeat)
 			else
 				saveWaiting = true
 				loadWaiting = nil
-				nameBuffer = ''
+				nameBuffer = anim.name or ''
 			end
 		elseif key=='o' and ctrlMod then
 			saveWaiting = nil
@@ -476,7 +476,10 @@ function saveAnimation()
 end
 
 function loadAnimation()
-	keyframes = table.load(anim.name)
+	local flag = io.open(anim.name .. ".anm")
+	if flag then
+		keyframes = table.load(anim.name .. ".anm")
+	end
 end
 
 function inputToKeyframe(key)

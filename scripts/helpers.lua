@@ -25,6 +25,8 @@ function loadResources(a, b)
                     place[name] = love.graphics.newImage(path)
                 elseif ext == 'ogg' or ext == 'mp3' or ext == 'wav' or ext == 'xm' or ext == 'it' or ext == 's3m' then
                     place[name] = love.audio.newSource(path)
+				else
+					error("found bad file.")
                 end
             else
                 place[item] = {}
