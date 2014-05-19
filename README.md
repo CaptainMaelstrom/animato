@@ -44,6 +44,14 @@ Bugs/Gotchas
 
 animato doesn't support changing images between keyframes. Please do not add or remove images between keyframes.
 
+Credits
+-------
+
+Thanks to kikito for tween.lua
+https://github.com/kikito/tween.lua
+
+Thanks to ChillCode for the saveTableToFile code:
+http://lua-users.org/wiki/SaveTableToFile
 
 
 
