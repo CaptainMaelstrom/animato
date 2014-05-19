@@ -41,12 +41,12 @@ function love.load()
 				local kf2 = keyframes[index+1]
 				parts[#parts+1] = table.deepcopy(p)
 				if #keyframes >= index+1 then
-					if not kf2[i] then error("A part is missing from one keyframe to the next.") end
-					anim.tweens[#anim.tweens+1] = tween(kf1.length/1000,parts[#parts].tbl,kf2[i].tbl,kf1.easing,function() anim.loadKeyframe(index+1) end)
+					if #kf2[i]~=#kf1[i] then error("A part is missing from one keyframe to the next.") end
+					anim.tweens[#anim.tweens+1] = tween(kf1.length/1000,parts[#parts].tbl,kf2[i].tbl,easings[kf1.easing],function() anim.loadKeyframe(index+1) end)
 				else
 					if smoothLoop and #keyframes > 1 then
 						local kf2 = keyframes[1]
-						anim.tweens[#anim.tweens+1] = tween(kf1.length/1000,parts[#parts].tbl,kf2[i].tbl,kf1.easing,function() if anim.loop then anim.loadKeyframe(1) else anim.timer = 0 anim.state = 'paused' end end)
+						anim.tweens[#anim.tweens+1] = tween(kf1.length/1000,parts[#parts].tbl,kf2[i].tbl,easings[kf1.easing],function() if anim.loop then anim.loadKeyframe(1) else anim.timer = 0 anim.state = 'paused' end end)
 					else
 						if anim.loop then
 							anim.loadKeyframe(1)
@@ -74,6 +74,19 @@ function love.load()
 			end
 		end
 	}
+	easings = {
+		'linear',
+		'inQuad','outQuad','inOutQuad','outInQuad',
+		'inCubic','outCubic','inOutCubic','outInCubic',
+		'inQuart','outQuart','inOutQuart','outInQuart',
+		'inQuint','outQuint','inOutQuint','outInQuint',
+		'inSine','outSine','inOutSine','outInSine',
+		'inExpo','outExpo','inOutExpo','outInExpo',
+		'inCirc','outCirc','inOutCirc','outInCirc',
+		'inElastic','outElastic','inOutElastic','outInElastic',
+		'inBounce','outBounce','inOutBounce','outInBounce',
+		'inBack','outBack','inOutBack','outInBack'
+	}
 	help = {
 		{"","Mouse Controls"},
 		{"Left click", "Select active part or active keyframe"},
@@ -95,7 +108,12 @@ function love.load()
 		{"S", "Stop"},
 		{"Ctrl+S", "Save animation"},
 		{"Ctrl+O", "Load keyframes from an animation"},
-		{"F", "Toggle fullscreen"}
+		{"F", "Toggle fullscreen"},
+		{"Up arrow", "Change active keyframe's easing function"},
+		{"Down", "Change easing function"},
+		{"Left", "Change easing function"},
+		{"Right", "Change easing function"},
+		{"Keypad 0", "Change keyframe easing to 'linear'"}
 	}
 end
 
@@ -160,7 +178,7 @@ function love.draw()
 	lg.setColor(white)
 	lg.setFont(fnt.medFont)
 	lg.print(tostring(anim.timer):sub(1,6),10,sh-110)
-	if nameBuffer then lg.print("Enter a name for the animation: " .. nameBuffer, 400,80) end
+	if nameBuffer then lg.print("Enter a name for the animation: " .. nameBuffer, 20,80) end
 	if newLength then lg.print(newLength,400,20) end
 end
 
@@ -229,6 +247,19 @@ function love.keypressed(key,isrepeat)
 			saveWaiting = nil
 			loadWaiting = true
 			nameBuffer = ''
+		elseif key=='up' then
+			if activeKeyframe then keyframes[activeKeyframe].easing = (keyframes[activeKeyframe].easing + 1)%41 end
+		elseif key=='down' then
+			if activeKeyframe then keyframes[activeKeyframe].easing = (keyframes[activeKeyframe].easing - 1)%41 end
+		elseif key=='left' then
+			if activeKeyframe then keyframes[activeKeyframe].easing = (keyframes[activeKeyframe].easing - 4)%41 end
+		elseif key=='right' then
+			if activeKeyframe then keyframes[activeKeyframe].easing = (keyframes[activeKeyframe].easing + 4)%41 end
+		elseif key=='kp0' then
+			if activeKeyframe then keyframes[activeKeyframe].easing = 1 end
+		end
+		if activeKeyframe then
+			if keyframes[activeKeyframe].easing == 0 then keyframes[activeKeyframe].easing = 1 end
 		end
 	end
 end
@@ -350,7 +381,7 @@ end
 
 function newKeyframe()
 	local kf = table.deepcopy(parts)	--keyframe starts with copy of parts
-	kf.easing = 'linear'
+	kf.easing = 1
 	kf.length = 400 						--400 ms is the default time
 	if activeKeyframe then
 		if activeKeyframe==#keyframes then
@@ -399,7 +430,7 @@ function drawKeyframes()
 		if i~=#keyframes then
 			lg.setColor(60,10,80)
 			lg.rectangle('line',30+90*(i-1),sh-30,70,25)
-			lg.print(kf.easing, 40+90*(i-1),sh-30)
+			lg.print(easings[kf.easing], 40+90*(i-1),sh-30)
 			lg.print(kf.length .. 'ms',40+90*(i-1),sh-18)
 		end
 	end
