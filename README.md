@@ -1,14 +1,16 @@
 animato
 =======
 
+![animato](http://i57.tinypic.com/sy4e9g.jpg)
+
 animato is a program made with love2d that let's anyone create animations based on in-betweening ('tweening') between various keyframes. Each keyframe has rotation, scale, and position information about each image. The workflow is roughly this:
 
 1. Replace the images in the images folder with those of your own
 2. Open animato and duplicate/remove images until you have the ones you need for your animation
 3. Click and drag images and make the next keyframe (by pressing 'k')
 4. Press play to watch your images transform from one keyframe to another (press 'p' to play)
-![animato](http://i57.tinypic.com/sy4e9g.jpg)
-Sample idle animation:	http://i59.tinypic.com/25up544.gif
+
+![sample idle animation](http://i59.tinypic.com/25up544.gif)
 
 Save your animation to a file by pressing Ctrl+S and entering a name
 
